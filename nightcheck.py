@@ -1,4 +1,4 @@
-#!/opt/netmgt/bin/python3
+#!/path/to/python3
 
 '''
   Author:   Ricky Martinez
