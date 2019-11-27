@@ -67,7 +67,7 @@ FILE_CONFIGS = {
                 }
 TABLE_HEADERS = ['Script Name', 'Syntax Error', 'Runtime Error']
 
-class ErrorChecker(object):
+class NightChecker(object):
     def __init__(self):
         self.files = []
         # If more filetypes, add to this dictionary as well as FILE_CONFIGS
