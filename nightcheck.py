@@ -1,8 +1,9 @@
-#!/path/to/python3
+#!/opt/netmgt/bin/python3
 
 '''
   Author:   Ricky Martinez
-  Purpose:  Error Checking for scripts. This assumes that all scripts have valid logging when there is a crontab job that is executed
+  Purpose:  Error Checking for scripts. This assumes that all scripts have valid logging when there is a 
+            crontab job that is executed
             This program is seperated into phases. First check for any syntax errors, then for any runtime errors.
             Syntax Error Check:
               This is done by:
@@ -12,7 +13,7 @@
                 NOTE: In python it's either python 2.# or 3.# so check for both
               - Compiling the programs but not executing them.
                 - ``` python -m compileall <DIRECTORY> ```
-                - ``` python3 -m compileall <DIRECTORY> ```
+
 
             Log Error Checker:
               Parse through all logs and see if there is any files that include the word, traceback.
@@ -27,35 +28,36 @@ import os
 import subprocess as sub
 
 import sys
-sys.path.append('/path/to/python3/lib/')
+sys.path.append(<SOMEPATH>)
 
 ### NOTE: Edit this to find files in other directories ###
-DIRECTORIES_TO_CHECK = ['/path/to/bin/',
-                        '/path/to/lib/',
-                        '/path/to/cgi-bin/',
-                        '/any/other/path/']
+DIRECTORIES_TO_CHECK = [<PATH1>,
+                        <PATH2>,
+                        <PATH3>,
+                        <PATH4>,]
 
 ### NOTE: Add files to ignore from the checks ###
-IGNORE_FILES = ['/file/to/ignore.py',\
-                '/path/to/file/to/ignore.pl',\
-                '/path/to/ignore.php']
+IGNORE_FILES = [<PATH1>,
+                <PATH2>,
+                <PATH3>,
+                <PATH4>]
 
 FILE_CONFIGS = {
                   'python'  : {
-                                'shebang'     : '#!/path/to/python',
-                                'syntax_cmd'  : '/path/to/python -m py_compile ',
+                                'shebang'     : '#!/opt/netmgt/bin/python',
+                                'syntax_cmd'  : '/opt/netmgt/bin/python -m py_compile ',
                                 'extensions'  : ['.py'],
                                 'ignore'      : ['.pyc']
                               },
                   'python3' : {
-                                'shebang'     : '#!/path/to/python3',
-                                'syntax_cmd'  : '/path/to/python3 -m py_compile ',
+                                'shebang'     : '#!/opt/netmgt/bin/python3',
+                                'syntax_cmd'  : '/opt/netmgt/bin/python3 -m py_compile ',
                                 'extensions'  : ['.py'],
                                 'ignore'      : ['.pyc']
                               },
                   'perl'    : {
-                                'shebang'     : '#!/path/to/perl',
-                                'syntax_cmd'  : '//path/to/perl -c ',
+                                'shebang'     : '#!/opt/netmgt/bin/perl',
+                                'syntax_cmd'  : '/opt/netmgt/bin/perl -c ',
                                 'extensions'  : ['.pl'],
                                 'flagwords'   : ['']
                               },
@@ -67,7 +69,7 @@ FILE_CONFIGS = {
                 }
 TABLE_HEADERS = ['Script Name', 'Syntax Error', 'Runtime Error']
 
-class NightChecker(object):
+class ErrorChecker(object):
     def __init__(self):
         self.files = []
         # If more filetypes, add to this dictionary as well as FILE_CONFIGS
@@ -76,12 +78,12 @@ class NightChecker(object):
 
     def _connect_db(self):
         '''
-          Connect to the database and save the cursor and db handle to ``` self ```
+            Connect to the database and save the cursor and db handle to ``` self ```
         '''
         import MySQLdb
 
         #GET DB info
-        with open('/path/to/pythonmysql.ini','r') as f:
+        with open(DBINFO_PATH,'r') as f:
             lines = f.readlines()
             for i, line in enumerate(lines):
                 if i == 0:
@@ -92,7 +94,7 @@ class NightChecker(object):
                     password = line[:-1]
 
         #CONNECT to DB
-        self.db = MySQLdb.connect(host='127.0.0.1',user=username,passwd=password, db="DBName", unix_socket = "/path/to/mysql.sock")
+        self.db = MySQLdb.connect(host='127.0.0.1',user=username,passwd=password, db="NMG", unix_socket = <SOCKETPATH>)
         self.cur = self.db.cursor()
 
     def _get_files(self):
@@ -100,19 +102,20 @@ class NightChecker(object):
             Get all files within the DIRECTORIES_TO_CHECK directories. Append the directory to get the full complete path (absolute path)
         '''
         for directory in DIRECTORIES_TO_CHECK:
-            filenames = [directory + f for f in os.listdir(directory) if 'pyc' not in f and
-                                                                          'swp' not in f and
-                                                                          '.' in f and
-                                                                          'old' not in f]
+            filenames = [directory + f for f in os.listdir(directory) if '.'        in f and
+                                                                         'pyc'  not in f and
+                                                                         'swp'  not in f and
+                                                                         'old'  not in f and
+                                                                         'test' not in f]
 
 
-        for filename in filenames:
-            if filename in IGNORE_FILES:
-                continue;
-            else:
-                self.files.append(filename)
+            for filename in filenames:
+                if filename in IGNORE_FILES:
+                    continue;
+                else:
+                    self.files.append(filename)
 
-    def _get_crontab(self, user='username':
+    def _get_crontab(self, user='netmgt_user'):
         '''
             Get the crontab for specified user
         '''
@@ -151,9 +154,8 @@ class NightChecker(object):
             filetype_output, filetype_err = filetype_counter.communicate()
             filetype_output = filetype_output.decode()
 
-        if filetype_output:
-    #        #logger.info("Filetype detected! {} is Python 3".format(filename))
-            return 'py3'
+            if filetype_output:
+                return 'py3'
 
     def _get_log_file(self, script, crontab):
         '''
@@ -165,7 +167,6 @@ class NightChecker(object):
         for index, line in enumerate(crontab):
             if script in line:
                 cron_line = crontab[index]
-                print("CRON LINE: {}".format(script))
                 if 'dev/null' not in cron_line and cron_line[0] != "#":
                     try:
                         self.log_file.append(cron_line.split('>>')[1].strip().split(' ')[0])
@@ -208,36 +209,56 @@ class NightChecker(object):
         syntax_output, syntax_err = syntax_counter.communicate()
         syntax_output = syntax_output.decode().strip()
         syntax_err = syntax_err.decode().strip()
-  
+
         if syntax_err and "OK" not in syntax_err:
             self.syn_err = syntax_err
 
-    def _get_runtime_errors(self, filetype, log):
-        '''
-            Check for errors specified in the logs. 
-            The Directory where the logs are stored and being checked is ``` /path/to/logs/ ```
-        '''
-        sed_cmd = "sed -n -e '/Traceback/,/Error/ p' {}".format(log)
-        sed_counter = sub.Popen(sed_cmd, stdout=sub.PIPE, stderr=sub.PIPE, shell=True)
-        sed_out, sed_err = sed_counter.communicate()
-        sed_out = sed_out.decode().strip()
+  def _get_runtime_errors(self, filetype, log):
+      '''
+        Check for errors specified in the logs. The following files are ignored because their logs are really long...
+            - blockedIPChecker.log, blockedIpChecker_init.log, portal_tools.log, Device.log
+        The Directory where the logs are stored and being checked is ``` /var/log/twns/ ```
+      '''
 
-        if sed_out:
-            self.run_err = sed_out
-        if not sed_out:
-            self.lines = []
-            self.run_err = 'None'
-            
-            try:
-                with open(log[0]) as f:
-                    self.lines = f.readlines()
-            except Exception as e:
-                self.run_err = "Unable to open {}. {}".format(log, e)
+      sed_cmd = "sed -n -e '/Traceback/,/Error/ p' {}".format(log)
+      sed_counter = sub.Popen(sed_cmd, stdout=sub.PIPE, stderr=sub.PIPE, shell=True)
+      sed_out, sed_err = sed_counter.communicate()
+      sed_out = sed_out.decode().strip()
+      self.run_err = 'None'
+      if sed_out:
+          self.run_err = sed_out
+      if not sed_out:
+          #logger.info("NO runtime errors found for {}".format(script))
+          self.lines = []
+          self.run_err = ''
 
-            ### NOTE: Add any conidition for runtime errors here
-            for line in self.lines:
-                if 'Permission denied' in line:
-                    self.run_err = 'Permission Denied'
+          try:
+              with open(log[0]) as f:
+                  self.lines = f.readlines()
+          except Exception as e:
+              self.run_err = "Unable to open {}. {}".format(log, e)
+
+          ### NOTE: Add any conidition for runtime errors here
+          for line in self.lines:
+              line = line.strip()
+              if 'Permission denied' in line:
+                  self.run_err = 'Permission Denied'
+              if "py" in filetype:
+                  start = False
+                  error = ''
+
+                  if 'Traceback' in line or "error" in line.lower() or "errors" in line.lower():
+                      start = True
+                  if start:
+                      if "{}</br>".format(line) not in error and "ERROR" not in line:
+                          error = "{}</br>".format(line)
+
+                  if not line or '' == line or line.startswith('-'):
+                      start = False
+
+                  if error:
+                      if error not in self.run_err:
+                          self.run_err += error
 
     def get_db_info(self):
         '''
@@ -275,7 +296,7 @@ class NightChecker(object):
         '''
             Get log file for script
             Returns: <string> log_file if there is one
-                      False if none is found.
+                     False if none is found.
         '''
         self._get_log_file(script, self.crontab)
         return self.log_file
@@ -294,7 +315,6 @@ class NightChecker(object):
             If it fails, submit a WARNING
             If it doesnt fail, commit
         '''
-        print("Inserting the following values:\nSyntax Error:\n{}\n\nRuntime Error:\n{}".format(synerr, runerr))
         dec_runerr = []
         synerr = self.db.escape_string(synerr).decode()
 
@@ -305,19 +325,19 @@ class NightChecker(object):
 
         if not synerr:
             synerror = "None"
-        if not dec_runerr:
+        if not dec_runerr or (len(dec_runerr) == 1 and dec_runerr[0] == "None"):
             dec_runerr = "None"
+        else:
+            continue
 
         insert_query = 'INSERT INTO NightCheckErrors(`caller`,`syntax_err`,`runtime_err`) VALUES(%s, %s, %s);'
 
         try:
             if type(dec_runerr) == list and len(dec_runerr) == 1:
-                print("Executing: {}".format(insert_query))
                 self.cur.execute(insert_query, (script, synerr, dec_runerr[0]))
             else:
                 self.cur.execute(insert_query, (script, synerr, dec_runerr))
         except Exception as e:
-            print("Failed to insert the following values: Query: {}, \nError:{}".format(insert_query, e))
             pass
         finally:
             self.db.commit()
@@ -341,13 +361,13 @@ class NightChecker(object):
         query = "SELECT `timestamp` FROM NightCheckErrors WHERE (`syntax_err` !='None' OR runtime_err !='None') AND Date(`timestamp`) = CURDATE();"
         self.cur.execute(query)
 
-        if not self.cur.fetchone():
+        try:
+            return self.cur.fetchone();
+        except Exception:
             query = "SELECT `timestamp` FROM NightCheckErrors WHERE Date(`timestamp`) = CURDATE();"
             self.cur.execute(query)
 
-            return self.cur.fetchone();
-
-        return self.cur.fetchone();
+         return self.cur.fetchall();
 
     def print_info(self, script, syntax, runtime):
         from texttable import Texttable
@@ -358,7 +378,7 @@ class NightChecker(object):
         table.add_rows([
                           ['Script Name', 'Syntax Error', 'Runtime Error'],
                           [script, syntax, list(error for error in runtime)],
-                      ])
+                  ])
         print(table.draw())
 
     def clearTable(self):
@@ -366,7 +386,7 @@ class NightChecker(object):
         DATEDIFF_QUERY = 'SELECT DATEDIFF((SELECT `timestamp` FROM NightCheckErrors ORDER BY `timestamp` LIMIT 1), CURDATE());'
         self.cur.execute(DATEDIFF_QUERY)
         date_diff = self.cur.fetchone()[0]
-  
+
         if date_diff and date_diff < -7:
             self.cur.execute("TRUNCATE NightCheckErrors");
 
@@ -388,12 +408,13 @@ if __name__ == "__main__":
         for ind, script in enumerate(scripts):
             results.update({script  :{'log'       :   'None',
                                       'syntax'    :   'None',
-                                      'runtime'   :   'None',
-                                      }
+                                      'runtime'   :   'None'}
                           })
             run_errors = []
 
+            print("Checking syntax errors for {}... ".format(script), end = "")
             syn_error = nc.get_syntax_errors(filetype, script)
+            print("Done.")
             if syn_error:
                 print("Syntax Error:\n\t{}".format(syn_error))
                 results[script]['syntax'] = syn_error
@@ -419,13 +440,13 @@ if __name__ == "__main__":
                             run_errors.append(run_error.strip().replace("\\",""))
                 if len(log_file) == 1:
                     if log_file:
-                        print("Checking runtime errors at {} for {}... ".format(log_file, script), end="")
                         run_error = nc.get_runtime_errors(filetype, log_file)
-                        run_errors.append(run_error.strip().replace("\\",""))
-
+                        if run_error:
+                            run_errors.append(run_error.strip().replace("\\",""))
+                        else:
+                            run_errors.append("None")
                 results[script]['runtime'] = run_errors
 
     for script in results:
         nc.insert_err(script, results[script]['syntax'], results[script]['runtime'])
     pprint(results)
-
