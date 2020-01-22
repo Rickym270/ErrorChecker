@@ -1,7 +1,17 @@
 #!/path/to/python3
+
+'''
+  Author:   Ricky Martinez
+  Company:  Tradeweb Markets - US Networks
+  Purpose:  Emailer. This script gets all errors from the database. 
+            From the errors, an email is generated.
+                If there were no issues, an email is sent to the EMAIL_LIST with the subject being OK and a list of all scanned scripts.
+                If there were issues, an email is sent to EMAIL_LIST with the subject of ERROR and listing out the errors.
+'''
+
 import sys
 sys.path.append('LIBPATH')
-from nightcheck import NightChecker
+from errorcheck import ErrorChecker
 from emailer import Emailer
 import os
 import datetime
